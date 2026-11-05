@@ -23,16 +23,31 @@ WSL-режим для DeepSeek Harness на Windows: команды выполн
 
 ## Быстрый старт
 
-1. Склонировать (или распаковать) в `C:\dsh-wsl-setup` — путь без пробелов.
-2. Закрыть DeepSeek Harness.
-3. В PowerShell:
+Репозиторий можно держать где угодно — на диске Windows или в WSL: установщик сам
+делает промежуточную копию пакета, потому что pnpm не умеет ставить напрямую из
+WSL-пути.
 
-   ```powershell
-   cd C:\dsh-wsl-setup
-   powershell -ExecutionPolicy Bypass -File .\setup.ps1
-   ```
+**Если репозиторий в WSL:**
 
-4. Запустить DeepSeek Harness и в новой сессии набрать `/wsl`.
+```bash
+git clone git@gitea.xn--txe.net:besi/dsh-wsl-setup.git /home/<you>/devdsh/dsh-wsl-setup
+```
+
+затем из Windows PowerShell (после закрытия DSH):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File '\\wsl.localhost\Ubuntu\home\<you>\devdsh\dsh-wsl-setup\setup.ps1'
+```
+
+**Если репозиторий на диске Windows:**
+
+```powershell
+git clone https://gitea.xn--txe.net/besi/dsh-wsl-setup.git C:\dsh-wsl-setup
+cd C:\dsh-wsl-setup
+powershell -ExecutionPolicy Bypass -File .\setup.ps1
+```
+
+После установки запустите DeepSeek Harness и в новой сессии наберите `/wsl`.
 
 Подробности, ручной путь установки и таблица неполадок — в [ИНСТРУКЦИЯ.md](ИНСТРУКЦИЯ.md).
 

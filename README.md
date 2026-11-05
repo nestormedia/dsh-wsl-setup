@@ -30,7 +30,7 @@ WSL-режим для DeepSeek Harness на Windows: команды выполн
 2. Вставьте адрес репозитория:
 
    ```
-   https://gitea.xn--txe.net/besi/dsh-wsl-setup
+   https://gitea.xn--txe.net/besi/dsh-wsl-setup.git
    ```
 
 3. Подтвердите установку и перезапустите DeepSeek Harness.

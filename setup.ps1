@@ -74,7 +74,11 @@ Copy-Item (Join-Path $source 'dsh-wsl') $stage -Recurse -Force
 Info "копия пакета: $stage"
 
 $spec = "file:$($stage.Replace('\', '/'))"
+# pnpm не перекопирует file:-пакет с той же версией, поэтому старую копию убираем:
+# иначе обновления плагина не доезжают до профиля.
+Remove-Item (Join-Path $profileDir 'node_modules\dsh-wsl') -Recurse -Force -ErrorAction SilentlyContinue
 Info "ставлю dsh-wsl"
+
 # pnpm возвращает код 1 из-за заблокированного build-скрипта node-pty — это
 # ожидаемо, поэтому ошибку не пробрасываем: результат проверяем по манифесту.
 $previous = $ErrorActionPreference

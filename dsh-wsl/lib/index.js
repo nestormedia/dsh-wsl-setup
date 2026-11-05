@@ -29,14 +29,15 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import { listDistros, defaultDistro, warmupDistro, wslenvFor } from './wsl.js'
 import { toWslPath, isWindowsAbsolute } from './path.js'
 import { readDistroChoice, writeDistroChoice } from './distro.js'
+import { registerMode } from './mode.js'
 
 export const name = 'wsl'
 
 // Hard dependencies: without the inject list the row activates before these
 // services exist and the host roles get silently skipped (the loader
-// activates inject-less rows first). The preset-realm mount chains all three
+// activates inject-less rows first). The preset-realm mount chains all of them
 // from the host composition, so both mounts stay satisfiable.
-export const inject = ['webServer', 'tools', 'subprocess']
+export const inject = ['webServer', 'tools', 'subprocess', 'commands', 'systemPrompt']
 
 const TOOL_NAME = 'wsl'
 
@@ -136,6 +137,11 @@ export function apply(ctx, config = {}) {
     // Explicit opt-in: the preset's persistent-shell row sets this; the host
     // row never registers a backend into a host-level terminals registry.
     terminalBackend: config.terminalBackend === true,
+    // Per-session switching (/wsl on|off) lives here too; the preset realm
+    // mount turns it off so the command and section are contributed once.
+    sessionMode: config.sessionMode !== false,
+    modeEnabledByDefault: config.modeEnabledByDefault !== false,
+    modeOrder: Number.isFinite(config.modeOrder) ? config.modeOrder : 900,
     timeoutMs: Number.isFinite(config.timeoutMs) && config.timeoutMs > 0 ? config.timeoutMs : 120000,
     maxTimeoutMs: Number.isFinite(config.maxTimeoutMs) && config.maxTimeoutMs > 0 ? config.maxTimeoutMs : 600000,
     maxOutputBytes: Number.isFinite(config.maxOutputBytes) && config.maxOutputBytes > 0 ? config.maxOutputBytes : 64000,
@@ -438,4 +444,11 @@ export function apply(ctx, config = {}) {
       }
     }, 'dsh-wsl: WSL terminal backend registration')
   }
+
+  // ---- role: per-session WSL mode (/wsl on | off + prompt section) -----------
+  registerMode(ctx, {
+    sessionMode: cfg.sessionMode,
+    enabledByDefault: cfg.modeEnabledByDefault,
+    order: cfg.modeOrder,
+  })
 }

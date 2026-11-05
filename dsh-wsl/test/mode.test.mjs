@@ -1,12 +1,14 @@
-// Unit tests: no harness packages, no WSL, no network — a fake Cordis context.
+// Unit tests for the per-session WSL mode: no harness packages, no WSL, no
+// network — a fake Cordis context and a temporary DSH_HOME.
+//
+// Run: node --test test/mode.test.mjs
 import { test, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { apply, INSTRUCTION, parseModeArg } from '../index.js'
-import { isOnFor, readState, setModeFor } from '../lib/state.js'
+import { registerMode, INSTRUCTION, parseModeArg, isOnFor, readModeState, setModeFor } from '../lib/mode.js'
 
 let home
 beforeEach(() => {
@@ -17,23 +19,19 @@ beforeEach(() => {
 
 /** A minimal Cordis-shaped context that records what the plugin registers. */
 function fakeContext() {
-  const registered = { commands: [], sections: [], agents: [] }
+  const registered = { commands: [] }
   const listeners = new Map()
   const ctx = {
     on(event, callback) {
       listeners.set(event, callback)
       return () => listeners.delete(event)
     },
-    inject(_deps, callback) {
-      callback(ctx)
-    },
     effect(fn) {
       fn()
       return () => {}
     },
     get(name) {
-      if (name === 'commands') return ctx.commands
-      return undefined
+      return name === 'commands' ? ctx.commands : undefined
     },
     commands: {
       register(definition) {
@@ -57,25 +55,19 @@ function fakeAgent(id) {
       session: { id },
       ctx: {
         get: (name) => (name === 'systemPrompt'
-          ? {
-            section(section) {
-              sections.push(section)
-              return () => {}
-            },
-          }
+          ? { section(section) { sections.push(section); return () => {} } }
           : undefined),
-        effect: (fn) => {
-          fn()
-          return () => {}
-        },
+        effect: (fn) => { fn(); return () => {} },
       },
     },
   }
 }
 
-test('registers the /wsl command and defaults to ON', () => {
+const cfg = { sessionMode: true, enabledByDefault: true, order: 900 }
+
+test('registers /wsl once and defaults to ON', () => {
   const { ctx, registered } = fakeContext()
-  apply(ctx, {})
+  registerMode(ctx, cfg)
   assert.equal(registered.commands.length, 1)
   const command = registered.commands[0]
   assert.equal(command.name, 'wsl')
@@ -83,7 +75,7 @@ test('registers the /wsl command and defaults to ON', () => {
   const { agent, sections } = fakeAgent('session-a')
   ctx.emit('agent/created', { agent, source: 'fresh' })
   assert.equal(sections.length, 1)
-  assert.equal(sections[0].name, 'dsh-wsl-mode')
+  assert.equal(sections[0].name, 'dsh-wsl-session-mode')
   assert.equal(sections[0].text(), INSTRUCTION)
 
   const status = command.handler({ agent, rawInput: '' })
@@ -91,9 +83,16 @@ test('registers the /wsl command and defaults to ON', () => {
   assert.match(status.text, /ON/)
 })
 
+test('two mounts sharing one registry register the command once', () => {
+  const { ctx, registered } = fakeContext()
+  registerMode(ctx, cfg)
+  registerMode(ctx, cfg)
+  assert.equal(registered.commands.length, 1)
+})
+
 test('/wsl off silences the section for that session only', () => {
   const { ctx, registered } = fakeContext()
-  apply(ctx, {})
+  registerMode(ctx, cfg)
   const command = registered.commands[0]
   const first = fakeAgent('session-a')
   const second = fakeAgent('session-b')
@@ -110,7 +109,7 @@ test('/wsl off silences the section for that session only', () => {
 
 test('/wsl on restores the section and survives a re-read', () => {
   const { ctx, registered } = fakeContext()
-  apply(ctx, {})
+  registerMode(ctx, cfg)
   const command = registered.commands[0]
   const { agent, sections } = fakeAgent('session-c')
   ctx.emit('agent/created', { agent, source: 'fresh' })
@@ -124,7 +123,7 @@ test('/wsl on restores the section and survives a re-read', () => {
 
 test('unknown argument is rejected without changing state', () => {
   const { ctx, registered } = fakeContext()
-  apply(ctx, {})
+  registerMode(ctx, cfg)
   const command = registered.commands[0]
   const { agent } = fakeAgent('session-d')
   ctx.emit('agent/created', { agent, source: 'fresh' })
@@ -136,7 +135,7 @@ test('unknown argument is rejected without changing state', () => {
 
 test('enabledByDefault: false flips the default without touching stored sessions', () => {
   const { ctx, registered } = fakeContext()
-  apply(ctx, { enabledByDefault: false })
+  registerMode(ctx, { sessionMode: true, enabledByDefault: false, order: 900 })
   const command = registered.commands[0]
   const { agent, sections } = fakeAgent('session-e')
   ctx.emit('agent/created', { agent, source: 'fresh' })
@@ -146,11 +145,16 @@ test('enabledByDefault: false flips the default without touching stored sessions
   assert.equal(sections[0].text(), INSTRUCTION)
 })
 
+test('sessionMode: false contributes nothing', () => {
+  const { ctx, registered } = fakeContext()
+  registerMode(ctx, { ...cfg, sessionMode: false })
+  assert.equal(registered.commands.length, 0)
+})
+
 test('state file keeps one entry per session', () => {
   setModeFor('session-x', false)
   setModeFor('session-y', true)
-  const state = readState()
-  assert.deepEqual(state.sessions, { 'session-x': false, 'session-y': true })
+  assert.deepEqual(readModeState().sessions, { 'session-x': false, 'session-y': true })
 })
 
 test('parseModeArg accepts the documented spellings', () => {

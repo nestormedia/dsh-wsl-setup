@@ -99,6 +99,8 @@
         installPreset: false
         warmup: false
         settingsApi: false
+        # /wsl already comes from the host row; do not contribute it twice.
+        sessionMode: false
 
     - id: persistent-bash
       name: '@deepseek-ai/dsh-tool-bash-persistent'

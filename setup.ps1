@@ -1,17 +1,21 @@
-﻿# Установка WSL-плагинов в DeepSeek Harness (Windows)
+﻿# Установка dsh-wsl в DeepSeek Harness (Windows)
+#
+# Один плагин даёт всё сразу:
+#   * команды выполняются в WSL (инструмент wsl, пресет «极简模式 (WSL)» с постоянным PTY);
+#   * переключатель /wsl on | off для сессии (по умолчанию включён);
+#   * карточка WSL в настройках плагинов.
 #
 # Что делает скрипт:
-#   1. ставит в профиль два пакета: dsh-wsl (команды в WSL) и dsh-wsl-mode (/wsl on|off);
+#   1. ставит пакет dsh-wsl в профиль;
 #   2. раскладывает готовые бинарники node-pty (нужны для постоянного терминала);
-#   3. включает dsh-wsl-mode в список бандлов профиля;
-#   4. добавляет строку dsh-wsl в cordis.patch.yml.
+#   3. добавляет строку dsh-wsl в cordis.patch.yml.
 #
-# Запуск (PowerShell), из папки, куда распакован архив:
+# Запуск (PowerShell), из папки, куда склонирован репозиторий:
 #   powershell -ExecutionPolicy Bypass -File .\setup.ps1
 #
 # Параметры:
 #   -Profile   имя профиля (по умолчанию desktop)
-#   -SourceDir папка с dsh-wsl и dsh-wsl-mode (по умолчанию — папка скрипта)
+#   -SourceDir папка с пакетом dsh-wsl (по умолчанию — папка скрипта)
 
 param(
     [string]$Profile = 'desktop',
@@ -41,10 +45,8 @@ if (-not (Test-Path $cli)) { Fail "не найден dsh CLI: $cli (DeepSeek Har
 Info "dsh CLI: $cli"
 
 $source = (Resolve-Path $SourceDir).Path
-foreach ($pkg in 'dsh-wsl', 'dsh-wsl-mode') {
-    if (-not (Test-Path (Join-Path $source "$pkg\package.json"))) {
-        Fail "в $source нет папки $pkg"
-    }
+if (-not (Test-Path (Join-Path $source 'dsh-wsl\package.json'))) {
+    Fail "в $source нет папки dsh-wsl"
 }
 Info "исходники: $source"
 
@@ -54,29 +56,28 @@ $distros = @($raw -split "`r?`n" | ForEach-Object { $_.Trim() } | Where-Object {
 if ($distros.Count -eq 0) { Fail 'нет ни одного дистрибутива WSL: выполните wsl --install' }
 Info ('дистрибутивы: ' + ($distros -join ', '))
 
-# node из рантайма DSH, иначе системный
 $node = Get-ChildItem (Join-Path $dshHome 'dsh-runtimes\*\dependencies\node\bin\node.exe') -ErrorAction SilentlyContinue |
     Select-Object -First 1 -ExpandProperty FullName
 if (-not $node) { $node = (Get-Command node -ErrorAction SilentlyContinue).Source }
 Info "node: $(if ($node) { $node } else { 'не найден (постоянный терминал будет отключён)' })"
 
-# --- 1. Установка пакетов ----------------------------------------------------
-Step 'Установка пакетов (это сетевой шаг: pnpm скачает node-pty)'
+# --- 1. Установка пакета -----------------------------------------------------
+Step 'Установка пакета (сетевой шаг: pnpm скачает node-pty)'
 
-foreach ($pkg in 'dsh-wsl', 'dsh-wsl-mode') {
-    $spec = "file:$($source.Replace('\', '/'))/$pkg"
-    Info "ставлю $pkg"
-    # pnpm возвращает код 1 из-за заблокированного build-скрипта node-pty — это
-    # ожидаемо, поэтому ошибку не пробрасываем: результат проверяем по манифесту.
-    $previous = $ErrorActionPreference
-    $ErrorActionPreference = 'Continue'
-    try {
-        & $cli plugin --profile $Profile add $spec *> $null
-    } finally {
-        $ErrorActionPreference = $previous
-    }
-    $manifest = Get-Content (Join-Path $profileDir 'package.json') -Raw | ConvertFrom-Json
-    if (-not $manifest.dependencies.$pkg) { Fail "пакет $pkg не появился в зависимостях профиля (см. $profileDir\.plugin-manager\logs)" }
+$spec = "file:$($source.Replace('\', '/'))/dsh-wsl"
+Info "ставлю dsh-wsl"
+# pnpm возвращает код 1 из-за заблокированного build-скрипта node-pty — это
+# ожидаемо, поэтому ошибку не пробрасываем: результат проверяем по манифесту.
+$previous = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+try {
+    & $cli plugin --profile $Profile add $spec *> $null
+} finally {
+    $ErrorActionPreference = $previous
+}
+$manifest = Get-Content (Join-Path $profileDir 'package.json') -Raw | ConvertFrom-Json
+if (-not $manifest.dependencies.'dsh-wsl') {
+    Fail "пакет не появился в зависимостях профиля (см. $profileDir\.plugin-manager\logs)"
 }
 
 # --- 2. node-pty: разложить предсобранные бинарники ---------------------------
@@ -96,23 +97,7 @@ if ((Test-Path $nodePty) -and $node) {
     Write-Host '  ВНИМАНИЕ: node-pty или node не найдены — постоянный терминал будет недоступен' -ForegroundColor Yellow
 }
 
-# --- 3. Бандл dsh-wsl-mode ---------------------------------------------------
-Step 'Включение dsh-wsl-mode в композицию профиля'
-
-$manifestPath = Join-Path $profileDir 'package.json'
-$text = [IO.File]::ReadAllText($manifestPath, [Text.Encoding]::UTF8).TrimStart([char]0xFEFF)
-$manifest = $text | ConvertFrom-Json
-$bundles = @($manifest.dsh.profile.bundles)
-if ($bundles -contains 'dsh-wsl-mode') {
-    Info 'уже включён'
-} else {
-    $manifest.dsh.profile.bundles = @($bundles + 'dsh-wsl-mode')
-    $json = $manifest | ConvertTo-Json -Depth 8
-    [IO.File]::WriteAllText($manifestPath, $json, (New-Object Text.UTF8Encoding($false)))
-    Info 'добавлен в dsh.profile.bundles'
-}
-
-# --- 4. Строка dsh-wsl в cordis.patch.yml ------------------------------------
+# --- 3. Строка dsh-wsl в cordis.patch.yml ------------------------------------
 Step 'Строка dsh-wsl в cordis.patch.yml'
 
 $patchPath = Join-Path $profileDir 'cordis.patch.yml'
@@ -135,7 +120,8 @@ Write-Host @"
 После запуска:
   * в новой сессии введите  /wsl   — должно ответить "WSL mode is ON";
   * /wsl off  выключает режим для этой сессии, /wsl on — включает;
-  * попросите агента выполнить любую linux-команду: ls, uname -a.
+  * попросите агента выполнить любую linux-команду: ls, uname -a;
+  * Настройки -> Плагины: карточка WSL со списком дистрибутивов.
 
 Подробности и ручной путь установки — в ИНСТРУКЦИЯ.md.
 "@

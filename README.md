@@ -1,8 +1,8 @@
-# dsh-wsl-setup
+# dsh-wsl
 
 WSL-режим для DeepSeek Harness на Windows: команды выполняются в Ubuntu, файлы остаются общими с Windows.
 
-Один плагин, одна установка — всё сразу.
+Один плагин, одна установка — всё сразу. Это же репозиторий служит и бандлом плагина, и установщиком.
 
 ## Что умеет
 
@@ -22,7 +22,24 @@ WSL-режим для DeepSeek Harness на Windows: команды выполн
 - Установленный DeepSeek Harness (десктопное приложение) **0.2.2-rc.1**: плагин портирован под этот рантайм.
 - ~130 МБ на диске, администратор не нужен.
 
-## Установка на Windows (без git)
+## Установка из интерфейса
+
+Самый короткий путь, без git и без скриптов.
+
+1. Откройте **Plugins** → кнопка добавления плагина (**Add plugin**).
+2. Вставьте адрес репозитория:
+
+   ```
+   https://gitea.xn--txe.net/besi/dsh-wsl-setup
+   ```
+
+3. Подтвердите установку и перезапустите DeepSeek Harness.
+
+Менеджер скачает пакет по git, поставит зависимости и добавит строку плагина в профиль сам.
+
+> Постоянный терминал требует `node-pty`. Если он не собрался, обычные команды в WSL всё равно работают; чтобы подготовить терминал, запустите `setup.ps1` из архива (см. ниже).
+
+## Установка на Windows (без git, из архива)
 
 Так ставит обычный пользователь: git, администратор и навыки разработчика не нужны.
 
@@ -45,7 +62,7 @@ Windows помечает скачанные архивы как небезопа
 
    Внутри архива одна папка (`dsh-wsl-setup-main`), её содержимое и нужно положить в `C:\dsh-wsl-setup`.
 
-Проверка: в папке должны лежать `setup.ps1`, `README.md` и папка `dsh-wsl`.
+Проверка: в папке должны лежать `setup.ps1`, `README.md`, `package.json`.
 
 ### Шаг 3. Закрыть DeepSeek Harness
 
@@ -92,6 +109,14 @@ powershell -ExecutionPolicy Bypass -File .\setup.ps1
 
 4. Запустите DeepSeek Harness и в новой сессии наберите `/wsl`.
 
+## Индекс плагинов
+
+В репозитории лежит `index.json` — индекс формата 1 для Discover. Добавьте его как источник индекса (**Plugins → Discover → Add index source**):
+
+```
+https://gitea.xn--txe.net/besi/dsh-wsl-setup/raw/branch/main/index.json
+```
+
 ## Как пользоваться
 
 - **`/wsl`** — показать состояние; **`/wsl on`** / **`/wsl off`** — включить или выключить режим для текущей сессии. На другие сессии не влияет.
@@ -112,10 +137,18 @@ powershell -ExecutionPolicy Bypass -File .\setup.ps1
 
 ## Состав
 
-| Файл / папка | Что это |
+Пакет плагина лежит в корне репозитория:
+
+| Путь | Что это |
 |---|---|
-| `dsh-wsl/` | Пакет плагина: инструмент `wsl`, пресет, карточка настроек, режим `/wsl` |
-| `setup.ps1` | Автоматическая установка в профиль DSH |
+| `package.json` | манифест пакета, `dsh.bundle.patch`, локали и иконка |
+| `cordis.patch.yml` | бандл-патч: вставляет строку плагина в профиль |
+| `lib/` | хост-половина, режим `/wsl`, PTY-бэкенд, клиентская карточка |
+| `agent-presets/` | пресет «极简模式 (WSL)» |
+| `test/` | юнит-тесты |
+| `setup.ps1` | установщик для машины без git |
+| `index.json` | индекс для Discover |
+| `UPSTREAM.md` | README оригинального плагина (MIT, penglai-doll) |
 
 ## Как это устроено
 
@@ -133,7 +166,6 @@ powershell -ExecutionPolicy Bypass -File .\setup.ps1
 ## Тесты
 
 ```powershell
-cd dsh-wsl
 node --test test/mode.test.mjs     # 10 юнит-тестов режима, без WSL и без зависимостей
 ```
 
@@ -141,7 +173,7 @@ node --test test/mode.test.mjs     # 10 юнит-тестов режима, бе
 инициализируется в `~/.bashrc`), запускайте его по пути из alias:
 
 ```bash
-cd /path/to/dsh-wsl-setup/dsh-wsl
+cd /path/to/dsh-wsl-setup
 ~/.local/share/fnm/aliases/default/bin/node --test test/mode.test.mjs
 ```
 
@@ -163,18 +195,9 @@ cd /path/to/dsh-wsl-setup/dsh-wsl
 ## Удаление
 
 1. Закройте DeepSeek Harness.
-2. Удалите папку `%USERPROFILE%\.dsh\profiles\desktop\node_modules\dsh-wsl`.
-3. В `%USERPROFILE%\.dsh\profiles\desktop\package.json` удалите строку с `"dsh-wsl"` из `dependencies`.
-4. В `%USERPROFILE%\.dsh\profiles\desktop\cordis.patch.yml` удалите блок:
-
-   ```yaml
-   - insert:
-       - id: dsh-wsl
-         name: 'dsh-wsl'
-   ```
-
-5. Удалите папку `%USERPROFILE%\.dsh\.agent-presets\minimal-wsl`.
-6. Запустите приложение.
+2. Удалите пакет из профиля: **Plugins → Installed → WSL → удалить**, либо вручную — папку `%USERPROFILE%\.dsh\profiles\desktop\node_modules\dsh-wsl`, строку `"dsh-wsl"` из `dependencies` в `package.json` профиля и блок `- insert: - id: dsh-wsl` из `cordis.patch.yml`.
+3. Удалите папку `%USERPROFILE%\.dsh\.agent-presets\minimal-wsl`.
+4. Запустите приложение.
 
 ## Лицензия
 

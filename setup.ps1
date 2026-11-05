@@ -45,8 +45,8 @@ if (-not (Test-Path $cli)) { Fail "не найден dsh CLI: $cli (DeepSeek Har
 Info "dsh CLI: $cli"
 
 $source = ((Resolve-Path $SourceDir).Path) -replace '^Microsoft\.PowerShell\.Core\\FileSystem::', ''
-if (-not (Test-Path (Join-Path $source 'dsh-wsl\package.json'))) {
-    Fail "в $source нет папки dsh-wsl"
+if (-not (Test-Path (Join-Path $source 'package.json'))) {
+    Fail "в $source нет package.json — это не папка плагина"
 }
 Info "исходники: $source"
 
@@ -70,7 +70,8 @@ $stageRoot = Join-Path $env:LOCALAPPDATA 'dsh-wsl-staging'
 $stage = Join-Path $stageRoot 'dsh-wsl'
 Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory $stageRoot -Force | Out-Null
-Copy-Item (Join-Path $source 'dsh-wsl') $stage -Recurse -Force
+robocopy $source $stage /E /XD .git node_modules .plugin-market /NFL /NDL /NJH /NJS /NP | Out-Null
+if ($LASTEXITCODE -ge 8) { Fail "не удалось скопировать пакет в $stage" }
 Info "копия пакета: $stage"
 
 $spec = "file:$($stage.Replace('\', '/'))"

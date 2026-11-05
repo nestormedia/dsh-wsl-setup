@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "WSL mode",
+    "description": "Route a session's shell work into WSL with /wsl on and /wsl off, on by default."
+  }
+}

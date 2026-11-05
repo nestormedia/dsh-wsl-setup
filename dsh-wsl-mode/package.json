@@ -1,0 +1,30 @@
+{
+  "name": "dsh-wsl-mode",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Per-session WSL execution mode for DeepSeek Harness: /wsl on and /wsl off, ON by default, adding a system-prompt section that routes shell work into WSL.",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "files": [
+    "index.js",
+    "lib/*.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md"
+  ],
+  "license": "MIT"
+}

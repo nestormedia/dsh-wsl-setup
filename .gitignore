@@ -1,0 +1,3 @@
+node_modules/
+*.log
+dsh-wsl-mode.debug.log

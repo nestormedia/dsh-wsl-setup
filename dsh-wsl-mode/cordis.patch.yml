@@ -1,0 +1,4 @@
+# dsh-wsl-mode — a bundle that inserts its host row into the profile.
+- insert:
+    - id: dsh-wsl-mode
+      name: 'dsh-wsl-mode'

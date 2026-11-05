@@ -35,7 +35,7 @@ export const INSTRUCTION = [
 
 /** Diagnostics: off unless DSH_WSL_DEBUG=1. */
 export function debug(line) {
-  if (process.env.DSH_WSL_DEBUG !== '1') return
+  // TEMP: diagnostics always on while diagnosing
   try {
     appendFileSync(join(dshHomeDir(), 'dsh-wsl.debug.log'), `${new Date().toISOString()} ${line}\n`)
   } catch {
@@ -135,25 +135,43 @@ function definition(cfg) {
 
 /** Attach the prompt section to one agent; never fails session creation. */
 function attachSection(agent, cfg) {
+  debug(`attach: entered (sessionMode=${cfg.sessionMode})`)
   if (cfg.sessionMode !== true) return
   try {
     const ctx = agent?.ctx
-    if (ctx === undefined) return
-    const systemPrompt = ctx.get?.('systemPrompt')
-    if (systemPrompt === undefined || typeof systemPrompt.section !== 'function') {
-      debug('mode: systemPrompt unavailable for the agent')
+    if (ctx === undefined) {
+      debug('attach: agent has no ctx')
       return
     }
     const key = sessionKeyOf(agent)
+    debug(`attach: agent ${key}`)
+    let systemPrompt
+    try {
+      systemPrompt = ctx.systemPrompt
+    } catch (error) {
+      debug(`attach: property access failed: ${error?.message ?? error}`)
+    }
+    if (systemPrompt === undefined) {
+      try {
+        systemPrompt = ctx.get?.('systemPrompt')
+      } catch (error) {
+        debug(`attach: get() failed: ${error?.message ?? error}`)
+      }
+    }
+    if (systemPrompt === undefined || typeof systemPrompt.section !== 'function') {
+      debug(`attach: systemPrompt ${systemPrompt === undefined ? 'undefined' : typeof systemPrompt}`)
+      return
+    }
     ctx.effect(() => systemPrompt.section({
       name: SECTION_NAME,
       order: cfg.order,
       interpolate: false,
       text: () => (isOnFor(key, cfg.enabledByDefault) ? INSTRUCTION : ''),
     }), 'dsh-wsl: session mode section')
-    debug(`mode: section attached to ${key}`)
+    debug(`attach: section attached to ${key}`)
   } catch (error) {
     const message = String(error?.message ?? error)
+    debug(`attach: error ${message}`)
     if (!/already/i.test(message)) console.error(`dsh-wsl: session mode section: ${message}`)
   }
 }
@@ -166,6 +184,7 @@ function attachSection(agent, cfg) {
  * same scope already carries one.
  */
 export function registerMode(ctx, cfg) {
+  debug(`registerMode: sessionMode=${cfg.sessionMode}`)
   if (cfg.sessionMode !== true) return
 
   const commands = ctx.get?.('commands')
@@ -198,6 +217,7 @@ export function registerMode(ctx, cfg) {
   // the row waits for several services. Catch those live sessions up instead of
   // leaving them without a section until the next restart.
   const agents = ctx.get?.('agents')
+  debug(`mode: agents service ${agents === undefined ? 'absent' : 'present'}, live=${agents?.list?.().length ?? 'n/a'}`)
   if (agents !== undefined && typeof agents.list === 'function') {
     try {
       const live = agents.list()

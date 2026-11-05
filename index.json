@@ -1,0 +1,43 @@
+{
+  "format": 1,
+  "title": "Плагины DSH от besi",
+  "description": "Плагины DeepSeek Harness: WSL-режим на Windows.",
+  "plugins": [
+    {
+      "name": "dsh-wsl",
+      "title": "WSL",
+      "description": "Команды DeepSeek Harness выполняются в WSL: инструмент wsl, постоянный терминал, переключатель /wsl.",
+      "author": "besi",
+      "homepage": "https://gitea.xn--txe.net/besi/dsh-wsl-setup",
+      "repository": {
+        "url": "https://gitea.xn--txe.net/besi/dsh-wsl-setup",
+        "directory": "dsh-wsl"
+      },
+      "metadata": {
+        "keywords": [
+          "wsl",
+          "windows",
+          "bash",
+          "linux"
+        ],
+        "labels": [],
+        "sortKeys": {}
+      },
+      "versions": [
+        {
+          "version": "0.3.0",
+          "publishTimestamp": 1793888683,
+          "source": {
+            "type": "git",
+            "url": "https://gitea.xn--txe.net/besi/dsh-wsl-setup.git",
+            "commit": "c145e0afa068bd95cc46ea271c41799fa11b3084",
+            "path": "dsh-wsl"
+          },
+          "engines": {
+            "dsh": "^0.2.2-rc.1"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -193,4 +193,19 @@ export function registerMode(ctx, cfg) {
   ctx.on('agent/created', ({ agent }) => {
     attachSection(agent, cfg)
   })
+
+  // A resumed session can exist before this row finishes activating, because
+  // the row waits for several services. Catch those live sessions up instead of
+  // leaving them without a section until the next restart.
+  const agents = ctx.get?.('agents')
+  if (agents !== undefined && typeof agents.list === 'function') {
+    try {
+      const live = agents.list()
+      for (const agent of live) attachSection(agent, cfg)
+      if (live.length > 0) debug(`mode: caught up ${live.length} live session(s)`)
+    } catch (error) {
+      debug(`mode: live sessions unavailable: ${error?.message ?? error}`)
+    }
+  }
 }
+

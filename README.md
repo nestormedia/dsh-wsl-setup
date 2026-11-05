@@ -74,8 +74,16 @@ powershell -ExecutionPolicy Bypass -File .\setup.ps1
 
 ```bash
 cd dsh-wsl
-node --test test/mode.test.mjs     # 9 юнит-тестов режима, без WSL и без зависимостей
+node --test test/mode.test.mjs     # 10 юнит-тестов режима, без WSL и без зависимостей
 ```
+
+В WSL `node` обычно ставится через fnm и инициализируется в `~/.bashrc`, поэтому из
+неинтерактивной команды (`bash -c`) его не видно. Запускайте через логин-шелл:
+
+```bash
+bash -lc 'node --test test/mode.test.mjs'
+```
+
 
 ## Лицензия
 

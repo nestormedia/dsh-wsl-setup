@@ -90,6 +90,20 @@ test('two mounts sharing one registry register the command once', () => {
   assert.equal(registered.commands.length, 1)
 })
 
+test('catches up sessions that were already alive before activation', () => {
+  const { ctx } = fakeContext()
+  const first = fakeAgent('session-live-1')
+  const second = fakeAgent('session-live-2')
+  const base = ctx.get
+  ctx.get = (name) => (name === 'agents' ? { list: () => [first.agent, second.agent] } : base(name))
+
+  registerMode(ctx, cfg)
+
+  assert.equal(first.sections.length, 1)
+  assert.equal(second.sections.length, 1)
+  assert.equal(first.sections[0].text(), INSTRUCTION)
+})
+
 test('/wsl off silences the section for that session only', () => {
   const { ctx, registered } = fakeContext()
   registerMode(ctx, cfg)

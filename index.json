@@ -24,12 +24,12 @@
       },
       "versions": [
         {
-          "version": "0.5.0",
-          "publishTimestamp": 1793889564,
+          "version": "0.6.0",
+          "publishTimestamp": 1793890614,
           "source": {
             "type": "git",
             "url": "https://gitea.xn--txe.net/besi/dsh-wsl-setup.git",
-            "commit": "2332c47ca90c339021f794ad0be312adeb47f908"
+            "commit": "8bc2d8ea69fb4ca57ec457abc276afaa1afdce4e"
           },
           "engines": {
             "dsh": "^0.2.2-rc.1"

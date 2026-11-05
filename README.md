@@ -70,6 +70,15 @@ cd dsh-wsl
 node --test test/mode.test.mjs     # 10 юнит-тестов режима, без WSL и без зависимостей
 ```
 
+Если в WSL `node` не виден из неинтерактивной оболочки (стоит через fnm и
+инициализируется в `~/.bashrc`), запускайте его по пути из alias:
+
+```bash
+cd /path/to/dsh-wsl-setup/dsh-wsl
+~/.local/share/fnm/aliases/default/bin/node --test test/mode.test.mjs
+```
+
+
 ## Лицензия
 
 MIT. Оригинальный `dsh-wsl` — MIT, автор penglai-doll.

@@ -35,7 +35,7 @@ export const INSTRUCTION = [
 
 /** Diagnostics: off unless DSH_WSL_DEBUG=1. */
 export function debug(line) {
-  // TEMP: diagnostics always on while diagnosing
+  if (process.env.DSH_WSL_DEBUG !== '1') return
   try {
     appendFileSync(join(dshHomeDir(), 'dsh-wsl.debug.log'), `${new Date().toISOString()} ${line}\n`)
   } catch {

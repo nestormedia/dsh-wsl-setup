@@ -1,6 +1,6 @@
 {
   "name": "dsh-wsl",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "description": "WSL execution for DeepSeek Harness on Windows: the minimal-wsl agent preset (bash inside WSL via wsl.exe, non-persistent + persistent PTY), a general-purpose wsl model tool, a per-session /wsl on|off mode backed by an agent-scoped system-prompt section, and a Web Plugins settings tab with distro diagnostics over the /wsl-manager JSON API.",
   "type": "module",
@@ -34,7 +34,7 @@
     "icon.svg",
     "README.md"
   ],
-  "dependencies": {
+  "optionalDependencies": {
     "node-pty": "^1.1.0"
   },
   "peerDependencies": {

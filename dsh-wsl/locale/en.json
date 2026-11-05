@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "WSL",
+    "description": "Run shell commands inside WSL on Windows, with a per-session /wsl switch."
+  }
+}

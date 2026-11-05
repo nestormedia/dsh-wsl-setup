@@ -1,0 +1,4 @@
+# dsh-wsl — bundle patch: the row that mounts the plugin in a profile.
+- insert:
+    - id: dsh-wsl
+      name: 'dsh-wsl'

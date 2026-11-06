@@ -25,15 +25,15 @@ WSL-режим для DeepSeek Harness на Windows: команды выполн
 ## Установка
 
 1. Откройте **Plugins** и нажмите добавление плагина (**Add plugin**).
-2. Вставьте адрес репозитория:
+2. Вставьте адрес архива:
 
    ```
-   https://github.com/nestormedia/dsh-wsl-setup
+   https://github.com/nestormedia/dsh-wsl-setup/archive/refs/heads/main.tar.gz
    ```
 
 3. Нажмите **Install** и дождитесь завершения.
 
-   > Если pnpm ответит `ERR_PNPM_TARBALL_EXTRACT`, добавьте `.git` в конце адреса: тогда pnpm разберёт его как git-репозиторий, а не как архив.
+   > Это адрес архива, а не репозитория: pnpm не вызывает git, поэтому так ставится и на машине без установленного git. Адрес ведёт на текущую ветку `main`; чтобы зафиксировать версию, замените `refs/heads/main` на sha коммита.
 
 4. Перезапустите DeepSeek Harness.
 
